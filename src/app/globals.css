@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: 210 20% 4%;
+  --foreground: 160 84% 95%;
+  --card: 160 20% 7%;
+  --card-foreground: 160 84% 95%;
+  --popover: 160 20% 7%;
+  --popover-foreground: 160 84% 95%;
+  --primary: 160 84% 39%;
+  --primary-foreground: 160 84% 98%;
+  --secondary: 160 20% 14%;
+  --secondary-foreground: 160 84% 95%;
+  --muted: 160 20% 14%;
+  --muted-foreground: 160 10% 55%;
+  --accent: 160 84% 39%;
+  --accent-foreground: 160 84% 98%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 84% 98%;
+  --border: 160 20% 18%;
+  --input: 160 20% 18%;
+  --ring: 160 84% 39%;
+  --radius: 0.75rem;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* NEXUS Custom Utilities */
+.nexus-glow {
+  box-shadow: 0 0 20px hsl(160 84% 39% / 0.15),
+    0 0 60px hsl(160 84% 39% / 0.05);
+}
+
+.nexus-glow-text {
+  text-shadow: 0 0 20px hsl(160 84% 39% / 0.5);
+}
+
+.nexus-gradient {
+  background: linear-gradient(135deg, hsl(160 84% 39%), hsl(180 84% 39%));
+}
+
+.nexus-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  transition: all 0.3s ease;
+}
+
+.nexus-card:hover {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 20px hsl(160 84% 39% / 0.1);
+}
+
+.nexus-btn {
+  background: linear-gradient(135deg, hsl(160 84% 39%), hsl(180 84% 39%));
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.625rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nexus-btn:hover {
+  opacity: 0.9;
+  box-shadow: 0 0 20px hsl(160 84% 39% / 0.3);
+  transform: translateY(-1px);
+}
+
+.nexus-input {
+  background: hsl(var(--secondary));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 0.625rem 1rem;
+  color: hsl(var(--foreground));
+  width: 100%;
+  transition: border-color 0.3s ease;
+}
+
+.nexus-input:focus {
+  outline: none;
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(160 84% 39% / 0.2);
+}
+
+/* Score Colors */
+.score-hot {
+  color: hsl(0 84% 60%);
+}
+
+.score-warm {
+  color: hsl(45 84% 55%);
+}
+
+.score-cool {
+  color: hsl(160 84% 39%);
+}
+
+/* Animations */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px hsl(160 84% 39% / 0.15);
+  }
+  50% {
+    box-shadow: 0 0 40px hsl(160 84% 39% / 0.3);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary));
+}

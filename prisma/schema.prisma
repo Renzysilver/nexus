@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  image         String?
+  credits       Int      @default(5)
+  referralCode  String   @unique @default(cuid())
+  referredBy    String?
+  ideas         Idea[]
+  knowledgeCards KnowledgeCard[]
+  createdAt     DateTime @default(now())
+}
+
+model Idea {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  category    String?
+  score       Int?
+  insight     String?
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  card        KnowledgeCard?
+  createdAt   DateTime @default(now())
+}
+
+model KnowledgeCard {
+  id           String   @id @default(cuid())
+  title        String
+  summary      String
+  keyInsights  String
+  frameworks   String
+  actionSteps  String
+  price        Float    @default(4.99)
+  category     String
+  likes        Int      @default(0)
+  purchases    Int      @default(0)
+  ideaId       String   @unique
+  idea         Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  creatorId    String?
+  creator      User?    @relation(fields: [creatorId], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model Waitlist {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  referralCode String @unique @default(cuid())
+  referredBy String?
+  position   Int
+  createdAt  DateTime @default(now())
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  event     String
+  data      String?
+  userId    String?
+  createdAt DateTime @default(now())
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String?
+  cardId    String
+  userId    String?
+  userName  String?
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String
+  message   String
+  read      Boolean  @default(false)
+  userId    String?
+  createdAt DateTime @default(now())
+}
