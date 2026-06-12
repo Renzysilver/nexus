@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
+import { generateCardContent } from "@/lib/groq"
 
 export async function POST(req: Request) {
   try {
@@ -41,6 +42,13 @@ export async function POST(req: Request) {
     const price = score && score > 70 ? 7.99 : score && score > 50 ? 4.99 : 2.99
     const cardCategory = category || "General Innovation"
 
+    // Try real AI generation via Groq first; fall back to templates if unavailable
+    const aiContent = await generateCardContent(title, description, cardCategory)
+    const summary = aiContent?.summary ?? pickRandom(summaryTemplates)
+    const keyInsightsContent = aiContent?.keyInsights ?? pickRandom(keyInsights)
+    const frameworksContent = aiContent?.frameworks ?? pickRandom(frameworks)
+    const actionStepsContent = aiContent?.actionSteps ?? pickRandom(actionSteps)
+
     // Resolve the user (create one if we only have an email)
     let resolvedUserId: string | undefined
     if (userEmail) {
@@ -78,10 +86,10 @@ export async function POST(req: Request) {
     const card = await prisma.knowledgeCard.create({
       data: {
         title: cardTitle,
-        summary: pickRandom(summaryTemplates),
-        keyInsights: pickRandom(keyInsights),
-        frameworks: pickRandom(frameworks),
-        actionSteps: pickRandom(actionSteps),
+        summary,
+        keyInsights: keyInsightsContent,
+        frameworks: frameworksContent,
+        actionSteps: actionStepsContent,
         price,
         category: cardCategory,
         likes: 0,

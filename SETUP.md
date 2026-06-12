@@ -25,6 +25,16 @@ NEXUS is now a real, end-to-end product instead of a UI demo:
    across reloads, and your cards are re-loaded from the database
    automatically.
 7. **Recommendations** now blend real published cards with the demo catalog.
+8. **Real AI generation via Groq.** `/api/generate-card` and `/api/auto-generate`
+   now call `llama-3.3-70b-versatile` (via `GROQ_API_KEY`) to write the
+   summary, key insights, framework, and action steps for each card. If the
+   key is missing or the call fails, it falls back to the static templates —
+   generation never breaks.
+9. **Marketplace is pre-seeded with 10 real cards.** Your local DB
+   (`prisma/db/custom.db`) now has 10 published, authored knowledge cards
+   (AI prompting, SaaS validation, growth, DeFi, productivity, etc.) so the
+   marketplace isn't empty. For production, run `prisma/seed-cards.sql`
+   against your Postgres database (see below).
 
 ## Local setup
 
@@ -63,6 +73,10 @@ or cold start resets the file. Before deploying for real:
 3. Set `DATABASE_URL` in Vercel's project env vars to the Postgres connection
    string, then run `npx prisma migrate deploy` once (locally, pointed at the
    prod DB, or via a one-off Vercel build step).
+3b. Seed the 10 starter cards into production:
+   ```bash
+   psql "$DATABASE_URL" -f prisma/seed-cards.sql
+   ```
 4. Get real Stripe keys (test mode first): set `STRIPE_SECRET_KEY` in Vercel.
 5. In the Stripe Dashboard, add a webhook endpoint pointing to
    `https://yourdomain.com/api/webhooks/stripe` for the

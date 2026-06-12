@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
+import { generateCardContent } from "@/lib/groq"
 
 // Auto-Generate Knowledge Card from Trending Topics
 // Takes a trend and produces a full knowledge card, persisted and ready for the marketplace
@@ -18,10 +19,16 @@ export async function POST(req: Request) {
     const cardCategory = category || "General Innovation"
     const price = suggestedPrice || 4.99
 
-    const summary = `A comprehensive, AI-generated knowledge card covering every angle of "${title}". This card distills the latest trends, strategies, and actionable insights in the ${cardCategory} space — designed for creators and builders who want to move fast.`
-    const keyInsights = `• Trending score: ${heat || "N/A"}/100 — ${heat > 90 ? "PEAK timing" : "Strong momentum"}\n• Market gap: Most content on this topic is shallow — structured knowledge commands premium prices\n• First-mover advantage: Publishing NOW positions you as the authority before the space gets crowded\n• Revenue potential: $${price} price point with ${heat > 85 ? "high" : "moderate"} conversion rate expected\n• Distribution hack: Share the first insight free on social media, gate the rest behind the card purchase`
-    const frameworks = `1. RESEARCH: Deep-dive into the top 10 resources on this topic (we've pre-analyzed 50+)\n2. STRUCTURE: Organize into the NEXUS 5-pillar format (Problem → Landscape → Strategy → Framework → Action)\n3. DIFFERENTIATE: Add your unique perspective or data — this is what makes it worth paying for\n4. PRICE: Start at $${price}, optimize based on purchase velocity\n5. LAUNCH: 3-platform simultaneous release (X, Reddit, Discord) with a 24-hour early bird discount`
-    const actionSteps = `→ Day 1: Claim this trend. Publish a "coming soon" teaser on your channels.\n→ Day 2-3: Fill in the card with your expertise and unique insights.\n→ Day 4: List on NEXUS marketplace with an introductory price.\n→ Day 5-7: Promote daily. Share 1 insight per day as free content (funnel to card).\n→ Week 2: Analyze sales data. Consider a premium tier or follow-up card.`
+    const aiContent = await generateCardContent(
+      title,
+      `Trending topic auto-generated card. Heat score: ${heat || "N/A"}/100.`,
+      cardCategory
+    )
+
+    const summary = aiContent?.summary ?? `A comprehensive, AI-generated knowledge card covering every angle of "${title}". This card distills the latest trends, strategies, and actionable insights in the ${cardCategory} space — designed for creators and builders who want to move fast.`
+    const keyInsightsContent = aiContent?.keyInsights ?? `• Trending score: ${heat || "N/A"}/100 — ${heat > 90 ? "PEAK timing" : "Strong momentum"}\n• Market gap: Most content on this topic is shallow — structured knowledge commands premium prices\n• First-mover advantage: Publishing NOW positions you as the authority before the space gets crowded\n• Revenue potential: $${price} price point with ${heat > 85 ? "high" : "moderate"} conversion rate expected\n• Distribution hack: Share the first insight free on social media, gate the rest behind the card purchase`
+    const frameworksContent = aiContent?.frameworks ?? `1. RESEARCH: Deep-dive into the top 10 resources on this topic (we've pre-analyzed 50+)\n2. STRUCTURE: Organize into the NEXUS 5-pillar format (Problem → Landscape → Strategy → Framework → Action)\n3. DIFFERENTIATE: Add your unique perspective or data — this is what makes it worth paying for\n4. PRICE: Start at $${price}, optimize based on purchase velocity\n5. LAUNCH: 3-platform simultaneous release (X, Reddit, Discord) with a 24-hour early bird discount`
+    const actionStepsContent = aiContent?.actionSteps ?? `→ Day 1: Claim this trend. Publish a "coming soon" teaser on your channels.\n→ Day 2-3: Fill in the card with your expertise and unique insights.\n→ Day 4: List on NEXUS marketplace with an introductory price.\n→ Day 5-7: Promote daily. Share 1 insight per day as free content (funnel to card).\n→ Week 2: Analyze sales data. Consider a premium tier or follow-up card.`
 
     // Resolve the user (create one if we only have an email)
     let resolvedUserId: string | undefined
@@ -51,9 +58,9 @@ export async function POST(req: Request) {
       data: {
         title: `${title}: The Complete Knowledge Card`,
         summary,
-        keyInsights,
-        frameworks,
-        actionSteps,
+        keyInsights: keyInsightsContent,
+        frameworks: frameworksContent,
+        actionSteps: actionStepsContent,
         price,
         category: cardCategory,
         likes: 0,
