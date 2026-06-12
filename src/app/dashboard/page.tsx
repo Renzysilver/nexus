@@ -31,6 +31,8 @@ export default function Dashboard() {
     addIdea,
     knowledgeCards,
     addKnowledgeCard,
+    setKnowledgeCards,
+    updateKnowledgeCard,
     currentEvaluation,
     setCurrentEvaluation,
     isEvaluating,
@@ -47,6 +49,18 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<"capture" | "ideas" | "cards" | "trending" | "analytics" | "revenue">("capture")
   const [trendingTopics, setTrendingTopics] = useState<TrendingTopic[]>([])
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
+  const [publishing, setPublishing] = useState<string | null>(null)
+
+  // Load this creator's previously generated cards from the database
+  useEffect(() => {
+    if (!userEmail) return
+    fetch(`/api/cards?userEmail=${encodeURIComponent(userEmail)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.cards)) setKnowledgeCards(data.cards)
+      })
+      .catch(() => {})
+  }, [userEmail, setKnowledgeCards])
 
   // Fetch trending topics
   useEffect(() => {
@@ -147,6 +161,7 @@ export default function Dashboard() {
           description: idea.description,
           category: idea.category,
           score: idea.score,
+          userEmail,
         }),
       })
       const data = await res.json()
@@ -171,6 +186,7 @@ export default function Dashboard() {
           category: topic.category,
           heat: topic.heat,
           suggestedPrice: topic.suggestedPrice,
+          userEmail,
         }),
       })
       const data = await res.json()
@@ -181,6 +197,29 @@ export default function Dashboard() {
       toast.error("Auto-generation failed")
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleTogglePublish = async (card: { id: string; published?: boolean; title: string }) => {
+    setPublishing(card.id)
+    try {
+      const res = await fetch(`/api/cards/${card.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ published: !card.published }),
+      })
+      if (!res.ok) throw new Error("update failed")
+      const updated = await res.json()
+      updateKnowledgeCard(card.id, { published: updated.published })
+      toast.success(
+        updated.published
+          ? `"${card.title}" is live on the marketplace!`
+          : `"${card.title}" was unpublished.`
+      )
+    } catch {
+      toast.error("Couldn't update this card. Try again.")
+    } finally {
+      setPublishing(null)
     }
   }
 
@@ -381,13 +420,44 @@ export default function Dashboard() {
                     <p className="text-xs text-[hsl(var(--muted-foreground))] line-clamp-3 mb-3">
                       {card.summary}
                     </p>
-                    <div className="flex items-center justify-between pt-3 border-t border-[hsl(var(--border))]">
+                    <div className="flex items-center justify-between pt-3 border-t border-[hsl(var(--border))] mb-3">
                       <div className="flex items-center gap-3 text-xs text-[hsl(var(--muted-foreground))]">
                         <span>{card.likes} likes</span>
                         <span>{card.purchases} sales</span>
                       </div>
                       <ShareCard cardId={card.id} cardTitle={card.title} />
                     </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleTogglePublish(card)}
+                        disabled={publishing === card.id}
+                        className={`flex-1 text-xs !py-2 !px-3 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+                          card.published
+                            ? "bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+                            : "nexus-btn"
+                        }`}
+                      >
+                        {publishing === card.id
+                          ? "Saving..."
+                          : card.published
+                          ? "Unpublish"
+                          : "Publish to Marketplace"}
+                      </button>
+                      {card.published && (
+                        <Link
+                          href={`/card/${card.id}`}
+                          className="text-xs !py-2 !px-3 rounded-lg bg-[hsl(var(--secondary))] hover:text-[hsl(var(--primary))] transition-colors"
+                        >
+                          View
+                        </Link>
+                      )}
+                    </div>
+                    {card.published && (
+                      <div className="mt-2 text-xs text-[hsl(var(--primary))] flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--primary))] inline-block" />
+                        Live on marketplace
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

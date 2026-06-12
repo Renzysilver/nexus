@@ -44,6 +44,8 @@ model KnowledgeCard {
   category     String
   likes        Int      @default(0)
   purchases    Int      @default(0)
+  published    Boolean  @default(false)
+  authorName   String   @default("nexus_creator")
   ideaId       String   @unique
   idea         Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
   creatorId    String?

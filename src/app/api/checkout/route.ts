@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/lib/db"
 
 // Stripe Checkout Session Creator
-// In production, replace with real Stripe keys in .env
-// For now, this simulates the full checkout flow
+// If STRIPE_SECRET_KEY is set, creates a real Stripe Checkout session.
+// Otherwise runs in demo mode, which unlocks the card immediately and
+// records the "purchase" in the database so marketplace stats stay accurate.
 
 export async function POST(req: Request) {
   try {
@@ -15,7 +17,6 @@ export async function POST(req: Request) {
       )
     }
 
-    // Check if Stripe keys are configured
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY
 
     if (stripeSecretKey && stripeSecretKey.startsWith("sk_")) {
@@ -49,7 +50,23 @@ export async function POST(req: Request) {
 
       return NextResponse.json({ url: session.url, sessionId: session.id })
     } else {
-      // Demo mode — simulate a successful checkout
+      // Demo mode — simulate a successful checkout and persist the purchase
+      // for real (database-backed) cards so marketplace stats update live.
+      try {
+        await prisma.knowledgeCard.update({
+          where: { id: cardId },
+          data: { purchases: { increment: 1 } },
+        })
+        await prisma.analyticsEvent.create({
+          data: {
+            event: "purchase_demo",
+            data: JSON.stringify({ cardId, cardTitle, price, buyerEmail: buyerEmail || "guest" }),
+          },
+        })
+      } catch {
+        // Card may be one of the static featured demo cards (non-DB id) — ignore
+      }
+
       return NextResponse.json({
         url: `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/marketplace?purchase=success&card=${cardId}`,
         sessionId: `demo_session_${Date.now()}`,
@@ -57,7 +74,8 @@ export async function POST(req: Request) {
         message: "Stripe not configured — running in demo mode. Add STRIPE_SECRET_KEY to .env for real payments.",
       })
     }
-  } catch {
+  } catch (err) {
+    console.error("[checkout] error:", err)
     return NextResponse.json(
       { error: "Checkout session creation failed" },
       { status: 500 }

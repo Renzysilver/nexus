@@ -43,7 +43,7 @@ export async function GET() {
 
     // Revenue calculation
     const cards = await prisma.knowledgeCard.findMany()
-    const totalRevenue = cards.reduce((sum, card) => sum + card.purchases * card.price, 0)
+    const totalRevenue = cards.reduce((sum: number, card: { purchases: number; price: number }) => sum + card.purchases * card.price, 0)
 
     return NextResponse.json({
       totalEvents,
@@ -52,7 +52,7 @@ export async function GET() {
       totalCards,
       totalWaitlist,
       totalRevenue: totalRevenue.toFixed(2),
-      recentEvents: recentEvents.map((e) => ({
+      recentEvents: recentEvents.map((e: { event: string; data: string | null; createdAt: Date }) => ({
         event: e.event,
         data: e.data ? JSON.parse(e.data) : null,
         createdAt: e.createdAt,

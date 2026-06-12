@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/lib/db"
 
 export async function POST(req: Request) {
   try {
-    const { ideaId, title, description, category, score } = await req.json()
+    const { ideaId, title, description, category, score, userEmail } = await req.json()
 
     if (!title || !description) {
       return NextResponse.json(
@@ -14,7 +15,6 @@ export async function POST(req: Request) {
     // AI Knowledge Card Generator — structures raw ideas into sellable knowledge
     const cardTitle = `${title}: The Complete Knowledge Card`
 
-    // Generate structured knowledge from the idea
     const summaryTemplates = [
       `A comprehensive breakdown of "${title}" — covering the core problem, the ${category || "innovation"} landscape, and actionable strategies to move from concept to execution. This card distills the essential knowledge you need to validate, build, and monetize this idea.`,
       `Everything you need to know about "${title}" in one structured card. From market opportunity in ${category || "this space"} to step-by-step execution frameworks, this is your shortcut from idea to income.`,
@@ -38,22 +38,64 @@ export async function POST(req: Request) {
 
     const pickRandom = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)]
 
-    const card = {
-      id: crypto.randomUUID(),
-      ideaId: ideaId || crypto.randomUUID(),
-      title: cardTitle,
-      summary: pickRandom(summaryTemplates),
-      keyInsights: pickRandom(keyInsights),
-      frameworks: pickRandom(frameworks),
-      actionSteps: pickRandom(actionSteps),
-      price: score && score > 70 ? 7.99 : score && score > 50 ? 4.99 : 2.99,
-      category: category || "General Innovation",
-      likes: Math.floor(Math.random() * 50),
-      purchases: Math.floor(Math.random() * 20),
+    const price = score && score > 70 ? 7.99 : score && score > 50 ? 4.99 : 2.99
+    const cardCategory = category || "General Innovation"
+
+    // Resolve the user (create one if we only have an email)
+    let resolvedUserId: string | undefined
+    if (userEmail) {
+      const user = await prisma.user.upsert({
+        where: { email: userEmail },
+        update: {},
+        create: { email: userEmail },
+      })
+      resolvedUserId = user.id
     }
 
+    // Reuse an existing idea record (created during /api/evaluate on the client),
+    // otherwise create a fresh one so the card has something to attach to.
+    let idea = ideaId ? await prisma.idea.findUnique({ where: { id: ideaId } }) : null
+    if (!idea) {
+      idea = await prisma.idea.create({
+        data: {
+          title,
+          description,
+          category: cardCategory,
+          score: score ?? null,
+          userId: resolvedUserId,
+        },
+      })
+    }
+
+    // An idea can only have one card (1:1 relation) — if one already exists, return it
+    const existingCard = await prisma.knowledgeCard.findUnique({ where: { ideaId: idea.id } })
+    if (existingCard) {
+      return NextResponse.json(existingCard)
+    }
+
+    const authorName = userEmail ? userEmail.split("@")[0] : "nexus_creator"
+
+    const card = await prisma.knowledgeCard.create({
+      data: {
+        title: cardTitle,
+        summary: pickRandom(summaryTemplates),
+        keyInsights: pickRandom(keyInsights),
+        frameworks: pickRandom(frameworks),
+        actionSteps: pickRandom(actionSteps),
+        price,
+        category: cardCategory,
+        likes: 0,
+        purchases: 0,
+        published: false,
+        authorName,
+        ideaId: idea.id,
+        creatorId: resolvedUserId,
+      },
+    })
+
     return NextResponse.json(card)
-  } catch {
+  } catch (err) {
+    console.error("[generate-card] error:", err)
     return NextResponse.json(
       { error: "Card generation failed" },
       { status: 500 }

@@ -84,22 +84,34 @@ export default function CardDetailPage() {
     const found = featuredCards.find((c) => c.id === cardId)
     if (found) {
       setCard(found)
+      setLoading(false)
     } else {
-      // Fallback for auto-generated cards
-      setCard({
-        id: cardId,
-        title: "Knowledge Card",
-        summary: "This knowledge card contains structured, actionable insights on a trending topic. Purchase to unlock the full content.",
-        keyInsights: "Premium content — unlock to view the key insights that make this card valuable.",
-        frameworks: "Premium content — unlock to view the step-by-step framework.",
-        actionSteps: "Premium content — unlock to view the action plan.",
-        price: 4.99,
-        category: "General Innovation",
-        likes: 42,
-        purchases: 28,
-      })
+      // Try the database for a real, creator-published card
+      fetch(`/api/cards/${cardId}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("not found")
+          return res.json()
+        })
+        .then((data: CardData) => {
+          setCard(data)
+        })
+        .catch(() => {
+          // Fallback placeholder for unknown/legacy ids
+          setCard({
+            id: cardId,
+            title: "Knowledge Card",
+            summary: "This knowledge card contains structured, actionable insights on a trending topic. Purchase to unlock the full content.",
+            keyInsights: "Premium content — unlock to view the key insights that make this card valuable.",
+            frameworks: "Premium content — unlock to view the step-by-step framework.",
+            actionSteps: "Premium content — unlock to view the action plan.",
+            price: 4.99,
+            category: "General Innovation",
+            likes: 42,
+            purchases: 28,
+          })
+        })
+        .finally(() => setLoading(false))
     }
-    setLoading(false)
   }, [cardId])
 
   // Fetch recommendations

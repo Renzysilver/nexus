@@ -97,6 +97,39 @@ export default function Marketplace() {
   const [likedCards, setLikedCards] = useState<Set<string>>(new Set())
   const [purchasing, setPurchasing] = useState<string | null>(null)
   const [purchasedCard, setPurchasedCard] = useState<MarketCard | null>(null)
+  const [realCards, setRealCards] = useState<MarketCard[]>([])
+
+  // Load real, creator-published cards from the database
+  useEffect(() => {
+    fetch("/api/cards")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!Array.isArray(data.cards)) return
+        const mapped: MarketCard[] = data.cards.map((c: {
+          id: string
+          title: string
+          summary: string
+          price: number
+          category: string
+          likes: number
+          purchases: number
+          authorName?: string
+        }) => ({
+          id: c.id,
+          title: c.title,
+          summary: c.summary,
+          price: c.price,
+          category: c.category,
+          likes: c.likes,
+          purchases: c.purchases,
+          author: c.authorName || "nexus_creator",
+        }))
+        setRealCards(mapped)
+      })
+      .catch(() => {})
+  }, [])
+
+  const allCards = [...realCards, ...featuredCards]
 
   // Check for purchase success from Stripe redirect (real Stripe mode)
   useEffect(() => {
@@ -111,7 +144,7 @@ export default function Marketplace() {
     }
   }, [])
 
-  const filtered = featuredCards.filter((card) => {
+  const filtered = allCards.filter((card) => {
     const matchSearch =
       card.title.toLowerCase().includes(search.toLowerCase()) ||
       card.summary.toLowerCase().includes(search.toLowerCase())

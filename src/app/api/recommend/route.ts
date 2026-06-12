@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/lib/db"
 
 // AI Recommendations Engine
-// Returns personalized card suggestions based on category affinity
+// Returns personalized card suggestions based on category affinity,
+// blending real published cards with the static demo catalog.
 
-const allCards = [
+const staticCards = [
   { id: "1", title: "AI Agent Architecture: Building Autonomous Systems", category: "AI & Machine Learning", price: 9.99, likes: 234, purchases: 189 },
   { id: "2", title: "Zero-to-SaaS in 30 Days: The Solo Founder Playbook", category: "Productivity & Tools", price: 7.99, likes: 189, purchases: 156 },
   { id: "3", title: "Prompt Engineering Masterclass: From Zero to Expert", category: "AI & Machine Learning", price: 5.99, likes: 312, purchases: 247 },
@@ -21,20 +23,36 @@ export async function GET(req: Request) {
     const excludeId = searchParams.get("excludeId")
     const limit = parseInt(searchParams.get("limit") || "4")
 
-    let recommendations = [...allCards]
+    let realCards: typeof staticCards = []
+    try {
+      const cards = await prisma.knowledgeCard.findMany({
+        where: { published: true },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      })
+      realCards = cards.map((c: { id: string; title: string; category: string; price: number; likes: number; purchases: number }) => ({
+        id: c.id,
+        title: c.title,
+        category: c.category,
+        price: c.price,
+        likes: c.likes,
+        purchases: c.purchases,
+      }))
+    } catch {
+      // DB unavailable — fall back to static catalog only
+    }
 
-    // Exclude the current card
+    let recommendations = [...realCards, ...staticCards]
+
     if (excludeId) {
       recommendations = recommendations.filter((c) => c.id !== excludeId)
     }
 
-    // If category specified, prioritize same-category cards first
     if (category) {
       const sameCategory = recommendations.filter((c) => c.category === category)
       const otherCategory = recommendations.filter((c) => c.category !== category)
       recommendations = [...sameCategory, ...otherCategory]
     } else {
-      // Default: sort by popularity (purchases)
       recommendations.sort((a, b) => b.purchases - a.purchases)
     }
 
