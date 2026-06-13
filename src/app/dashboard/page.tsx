@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useNexusStore } from "@/lib/store"
 import { toast } from "sonner"
@@ -26,6 +27,7 @@ interface AnalyticsData {
 }
 
 export default function Dashboard() {
+  const router = useRouter()
   const {
     ideas,
     addIdea,
@@ -45,7 +47,6 @@ export default function Dashboard() {
 
   const [ideaTitle, setIdeaTitle] = useState("")
   const [ideaDesc, setIdeaDesc] = useState("")
-  const [emailInput, setEmailInput] = useState("")
   const [activeTab, setActiveTab] = useState<"capture" | "ideas" | "cards" | "trending" | "analytics" | "revenue">("capture")
   const [trendingTopics, setTrendingTopics] = useState<TrendingTopic[]>([])
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
@@ -82,39 +83,27 @@ export default function Dashboard() {
     }
   }, [activeTab])
 
-  // Auth gate
+  // Auth gate — middleware already redirects unauthenticated requests to /login,
+  // but sync userEmail from the server session in case the local store is empty
+  // (e.g. cleared storage, new device with an existing cookie).
+  useEffect(() => {
+    if (userEmail) return
+    fetch("/api/auth/session")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.session?.email) {
+          setUserEmail(data.session.email)
+        } else {
+          router.push("/login")
+        }
+      })
+      .catch(() => router.push("/login"))
+  }, [userEmail, setUserEmail, router])
+
   if (!userEmail) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="nexus-card p-8 max-w-md w-full mx-4 text-center">
-          <div className="w-12 h-12 rounded-xl nexus-gradient flex items-center justify-center font-bold text-white text-lg mx-auto mb-4">
-            N
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Enter NEXUS</h2>
-          <p className="text-sm text-[hsl(var(--muted-foreground))] mb-6">
-            Sign in with your email to access the Creator Dashboard
-          </p>
-          <input
-            type="email"
-            value={emailInput}
-            onChange={(e) => setEmailInput(e.target.value)}
-            placeholder="your@email.com"
-            className="nexus-input mb-4"
-          />
-          <button
-            onClick={() => {
-              if (emailInput.includes("@")) {
-                setUserEmail(emailInput)
-                toast.success("Welcome to NEXUS!")
-              } else {
-                toast.error("Enter a valid email")
-              }
-            }}
-            className="nexus-btn w-full"
-          >
-            Enter Dashboard
-          </button>
-        </div>
+        <div className="text-[hsl(var(--muted-foreground))] text-sm">Loading your dashboard...</div>
       </div>
     )
   }
@@ -247,7 +236,14 @@ export default function Dashboard() {
           <span className="text-[hsl(var(--muted-foreground))]">{userEmail}</span>
           <Link href="/" className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors">Home</Link>
           <Link href="/marketplace" className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors">Marketplace</Link>
-          <button onClick={() => setUserEmail(null)} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--destructive))] transition-colors">
+          <button
+            onClick={async () => {
+              await fetch("/api/auth/logout", { method: "POST" })
+              setUserEmail(null)
+              router.push("/login")
+            }}
+            className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--destructive))] transition-colors"
+          >
             Sign Out
           </button>
         </div>
@@ -418,7 +414,7 @@ export default function Dashboard() {
                     </div>
                     <h3 className="font-bold mb-2 text-sm">{card.title}</h3>
                     <p className="text-xs text-[hsl(var(--muted-foreground))] line-clamp-3 mb-3">
-                      {card.summary}
+                      {card.summary.replace(/\*\*/g, "")}
                     </p>
                     <div className="flex items-center justify-between pt-3 border-t border-[hsl(var(--border))] mb-3">
                       <div className="flex items-center gap-3 text-xs text-[hsl(var(--muted-foreground))]">

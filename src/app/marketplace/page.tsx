@@ -292,7 +292,7 @@ export default function Marketplace() {
                     <h3 className="font-bold mb-2 hover:text-[hsl(var(--primary))] transition-colors">{card.title}</h3>
                   </Link>
                   <p className="text-sm text-[hsl(var(--muted-foreground))] line-clamp-3 flex-1 mb-4">
-                    {card.summary}
+                    {card.summary.replace(/\*\*/g, "")}
                   </p>
 
                   {/* Author */}
@@ -362,7 +362,7 @@ export default function Marketplace() {
             <div className="nexus-card p-4 mb-4 text-left">
               <div className="text-xs text-[hsl(var(--primary))] mb-1">{purchasedCard.category}</div>
               <div className="font-bold text-sm mb-2">{purchasedCard.title}</div>
-              <div className="text-xs text-[hsl(var(--muted-foreground))] mb-3">{purchasedCard.summary.substring(0, 100)}...</div>
+              <div className="text-xs text-[hsl(var(--muted-foreground))] mb-3">{purchasedCard.summary.replace(/\*\*/g, "").substring(0, 100)}...</div>
               <div className="flex items-center justify-between">
                 <span className="text-[hsl(var(--primary))] font-bold text-lg">${purchasedCard.price}</span>
                 <span className="text-xs text-[hsl(var(--muted-foreground))]">by @{purchasedCard.author}</span>

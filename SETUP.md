@@ -35,6 +35,15 @@ NEXUS is now a real, end-to-end product instead of a UI demo:
    (AI prompting, SaaS validation, growth, DeFi, productivity, etc.) so the
    marketplace isn't empty. For production, run `prisma/seed-cards.sql`
    against your Postgres database (see below).
+10. **Real password authentication + gated access.** `/login` now has email +
+    password signup/login (bcrypt-hashed, stored on `User.password`), backed
+    by a signed `nexus_session` cookie. `/marketplace`, `/dashboard`, and
+    `/card/*` are now protected by middleware — logged-out visitors are
+    redirected to `/login`. Logout clears the server session.
+11. **No more raw `**asterisks**` in card content.** A `MarkdownText`
+    component now renders `**bold**` markers as real bold text (and `\n` as
+    paragraph breaks) on the card detail page; list previews strip stray
+    `**` markers entirely.
 
 ## Local setup
 

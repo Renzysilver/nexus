@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 import { toast } from "sonner"
 import { ShareCard } from "@/components/ShareCard"
+import { MarkdownText } from "@/components/MarkdownText"
 
 interface CardData {
   id: string
@@ -244,13 +245,11 @@ export default function CardDetailPage() {
                 <span>{section.icon}</span> {section.title}
               </h2>
               {unlocked ? (
-                <div className="whitespace-pre-line text-[hsl(var(--muted-foreground))] leading-relaxed">
-                  {section.content}
-                </div>
+                <MarkdownText text={section.content} className="text-[hsl(var(--muted-foreground))] leading-relaxed" />
               ) : (
                 <div className="relative">
-                  <div className="blur-md select-none whitespace-pre-line text-[hsl(var(--muted-foreground))] leading-relaxed">
-                    {section.content}
+                  <div className="blur-md select-none">
+                    <MarkdownText text={section.content} className="text-[hsl(var(--muted-foreground))] leading-relaxed" />
                   </div>
                   <div className="absolute inset-0 flex items-center justify-center bg-[hsl(var(--card))]/60">
                     <div className="text-center">
